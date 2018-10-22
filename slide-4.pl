@@ -1,25 +1,16 @@
 #!perl
 
-package My::Code;
-
-sub do_something {
-    return unless -e q[/any/path];
-
-    return "This is a Dir"  if -d _;
-    return "This is a File" if -f _;
-
-    return "No Ideas come back later";
-}
-
-### .
 package my::test::File;
 
 use Overload::FileCheck q(:all);
-
 mock_all_file_checks( \&dash_check );
+
+use Test::More;
 
 sub dash_check {
     my ( $check, $file_or_fh ) = @_;
+
+    note "call ? ", $check, " f: ", $file_or_fh;
 
     return FALLBACK_TO_REAL_OP unless $check =~ qr{^[def]$};
 
@@ -31,4 +22,25 @@ sub dash_check {
     return FALLBACK_TO_REAL_OP;
 }
 
-do_something();
+note My::Code::do_something();
+
+exit;
+
+package My::Code;
+
+
+sub do_something {
+    return unless -e q[/any/path];
+
+    return "This is a Dir"  if -d _;
+    return "This is a File" if -f _;
+
+    return "No Ideas come back later";
+}
+
+__END__
+
+# call ? e f: /any/path
+# call ? d f: undef
+# call ? f f: undef
+# No Ideas come back later
