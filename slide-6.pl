@@ -1,61 +1,56 @@
 #!perl
 
-use Test::More;
+use Test2::Bundle::Extended;
+use Test2::Tools::Explain;
 
-use Overload::FileCheck '-from-stat' => \&my_stat, q{:check};
+use Overload::FileCheck '-from-stat' => \&my_stat, q{:all};
+
+=pod
+
+use Overload::FileCheck q{:all};
+mock_all_from_stat( \&my_stat );
+
+=cut
+
+use constant MY_CUSTOM_PATH => '/my/custom/path';
+
+my $stat_as;
+
+{
+    $stat_as = 'null file';
+    #
+    ok -e MY_CUSTOM_PATH;
+    ok -e MY_CUSTOM_PATH && -f _;
+    ok -e MY_CUSTOM_PATH && !-d _;
+    is -s _, 0, "-s file is null";
+    ok -z _, "-z file is null";
+}
+
+{
+    $stat_as = 'file not null';
+    #
+    ok -e MY_CUSTOM_PATH;
+    ok -e MY_CUSTOM_PATH && -f _;
+    ok -e MY_CUSTOM_PATH && !-d _;
+    is -s _, 98765, "-s file is 98765";
+    ok !-z _, "-z file is not null";
+}
+
+pass and done_testing;
 
 sub my_stat {
     my ( $stat_or_lstat, $file_or_fh ) = @_;
 
-    return FALLBACK_TO_REAL_OP unless $file_or_fh && $file_or_fh eq '/any/path';
+    return FALLBACK_TO_REAL_OP unless $file_or_fh && $file_or_fh eq MY_CUSTOM_PATH;
 
     if (   $stat_or_lstat eq 'stat'
         || $stat_or_lstat eq 'lstat' ) {
 
-        return [ 1 .. 13 ] if $stat_as eq 'array';
-        return {
-            st_dev     => 1,
-            st_ino     => 2,
-            st_mode    => 3,
-            st_nlink   => 4,
-            st_uid     => 5,
-            st_gid     => 6,
-            st_rdev    => 7,
-            st_size    => 8,
-            st_atime   => 9,
-            st_mtime   => 10,
-            st_ctime   => 11,
-            st_blksize => 12,
-            st_blocks  => 13,
-        } if $stat_as_hash;
+        note "... running stat with stat_as eq '$stat_as'";
 
-        # or use one of the helper...
-
-        return stat_as_directory() if $stat_as eq 'directory';
-
-        if ( $stat_as eq 'use helper: with args' ) {
-            return stat_as_directory( uid => 'root', gid => 0, operms => 0755 );
-        }
-
-        my $now = now();
-        stat_as_file( size => 1234 ) if $stat_as eq 'file';
-        stat_as_symlink( mtime => $now ) if $stat_as eq 'link';
-        stat_as_socket( mtime => $now, atime => $now ) if $stat_as eq 'socket';
-
-        # ...
+        return stat_as_file() if $stat_as eq 'null file';        
+        return stat_as_file( size => 98765 ) if $stat_as eq 'file not null';
     }
 
     return FALLBACK_TO_REAL_OP;
 }
-
-{
-    $stat_as = 'file';
-    #
-    ok -e q[/any/path];
-    ok -e q[/any/path] && -f _;
-    ok -e q[/any/path] && !-d _;
-    is -s _, 12345;
-    my @stat = stat q[/any/path];
-}
-
-exit;
