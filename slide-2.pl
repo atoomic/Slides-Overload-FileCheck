@@ -1,7 +1,5 @@
 #!perl
 
-package my::test::File;
-
 use Test2::Bundle::Extended;
 
 use Overload::FileCheck q(:all);
